@@ -156,22 +156,27 @@ class MobileVlan(app_manager.RyuApp):
                     print "FLOOD-packet-out-when-arp-with-no-vlan-and-ovs-indirect"
 
                 elif self.LOGINING == rst:
-                    gate_port = rst_data['port']
-                    #TODO:ADD FLOW
-                    actions = [parser.OFPActionOutput(gate_port)]
-                    inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-                    match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
-                    if msg.buffer_id != ofproto.OFP_NO_BUFFER:
-                        self.add_flow(datapath, 1, match, inst, table_id=1, idle_timeout=10, buffer_id=msg.buffer_id)
+                    if 1 == rst_data['toGate']:
+                        gate_port = rst_data['port']
+                        #TODO:ADD FLOW
+                        actions = [parser.OFPActionOutput(gate_port)]
+                        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+                        match = parser.OFPMatch(in_port=in_port, eth_src=src, eth_dst=dst)
+                        if msg.buffer_id != ofproto.OFP_NO_BUFFER:
+                            self.add_flow(datapath, 1, match, inst, table_id=1, idle_timeout=10, buffer_id=msg.buffer_id)
+                        else:
+                            self.add_flow(datapath, 1, match, inst, table_id=1, idle_timeout=10)
+                        data = None
+                        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+                            data = msg.data
+                        out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
+                                                  in_port=in_port, actions=actions, data=data)
+                        datapath.send_msg(out)
+                        print "host is logining and we send flows"  
                     else:
-                        self.add_flow(datapath, 1, match, inst, table_id=1, idle_timeout=10)
-                    data = None
-                    if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-                        data = msg.data
-                    out = parser.OFPPacketOut(datapath=datapath, buffer_id=msg.buffer_id,
-                                              in_port=in_port, actions=actions, data=data)
-                    datapath.send_msg(out)
-                    print "host is logining and we send flows"                	
+                        #TODO:DROP
+                        print 'host is error-logging and we pass'
+                        pass              	
 
                 elif self.SUCCESS_MOVED == rst:
                     dpid_old = rst_data['dpid']
@@ -350,7 +355,8 @@ class MobileVlan(app_manager.RyuApp):
                                                                 -->若是1，程序出错 ERROR
                                    -->若有且无vlan号记录，可能主机未成功登录且移动，或者是正处于登录过程（S二者区别在于目的mac是否为广播mac）
                                                        看目的mac-->若是广播mac，则主机未成功登录且移动 FAIL_MOVED
-                                                               -->若不是广播mac，则正处于登录过程 LOGINING
+                                                               -->若是GATE_MAC，则正处于登录过程 LOGINING
+                                                               -->other mac,drop             LOGINING
                                    -->若无，其他ovs上是否有记录-->若有，是新注册且不直连主机 NEW_NSLAVE
                                                             -->若无，是新注册且直连主机 NEW_SLAVE
         返回值：1：新机注册且直连 NEW_SLAVE
@@ -363,9 +369,9 @@ class MobileVlan(app_manager.RyuApp):
 
         record_dpid = db.findDPIDByX(dpid=dpid,x='MAC_ADDR',value=src_mac)
         num_rcd_dpid = len(record_dpid)
+        dpid_list_rem = dpid_list
+        dpid_list_rem.remove(dpid)
         if 0 == num_rcd_dpid:
-            dpid_list_rem = dpid_list
-            dpid_list_rem.remove(dpid)
             num_rcd_odpid = db.numMul(db.findMulDPIDByX(dpid_list=dpid_list_rem,x='MAC_ADDR',value=src_mac))
             if 0 == num_rcd_odpid:
                 print 'New device,slave.'
@@ -403,16 +409,21 @@ class MobileVlan(app_manager.RyuApp):
                     print 'Device failed log in other ovs and moved here.'
                     # 删除所有ovs中有关该ip的记录，并更新本ovs数据库，记录主机mac、ip、port，标记该ovs为直连ovs
                     db.deleteMulDPIDByX(dpid_list=self.DPID_LIST,x='IP_ADDR',value=src_ip)
-                    db.insertDPID(dpid=dpid,MAC_ADDR=src_mac,PORT_ID=port_id,IP_ADDR=src_ip,SLAVE=1)
+                    db.insertDPID(dpid=dpid,mac_addr=src_mac,PORT_ID=port_id,IP_ADDR=src_ip,SLAVE=1)
                     return self.FAIL_MOVED, rst_data
                 else:
                     print 'Not first pkt of arp.Device is logging in.'
-                    # 查询ovs数据库，找到网关port, then return
-                    mac_gateway = db.selectGATEWAY()[0][0]
-                    port_gateway = db.findDPIDByX(dpid=dpid,x='MAC_ADDR',value=mac_gateway)
-                    rst_data['port'] = port_gateway
+                    if self.GATE_MAC == dst_mac:
+                        # 查询ovs数据库，找到网关port, then return
+                        mac_gateway = db.selectGATEWAY()[0][0]
+                        port_gateway = db.findDPIDByX(dpid=dpid,x='MAC_ADDR',value=mac_gateway)
+                        rst_data['port'] = port_gateway
+                        rst_data['toGate'] = 1
+                    else:
+                        print 'Dst_amc{mac} is not GETE_MAC, logging error.'.format(mac=dst_mac)
+                        rst_data['toGate'] = 0
                     return self.LOGINING, rst_data
-        	elif 1 == num_rcd_dev:
+            elif 1 == num_rcd_dev:
                 slave = record_dpid[0][2]
                 if 0 == slave:
                     print 'Device has log in other ovs yet and moved here.'
@@ -422,7 +433,8 @@ class MobileVlan(app_manager.RyuApp):
                         # 找出原来标记为直连的ovs的dpid，以及原来的vlan号;
                         record_slave = db.findMulDPIDByX(dpid_list=dpid_list_rem,x='SLAVE',value=1)
                         #debug--------------------------------------------------------
-                        if 1 != numMul(record_slave):
+                        num = db.numMul(record_slave)
+                        if 1 != num:
                             print 'Database error:Slave record error,num:{num}'.format(num=num)
                             return self.ERROR, rst_data
                         #/debug-------------------------------------------------------
@@ -444,6 +456,9 @@ class MobileVlan(app_manager.RyuApp):
                         print 'Not first pkt of arp. Drop it.' 
                         rst_data['flood'] = 0
                     return self.SUCCESS_MOVED, rst_data
+                else:
+                    print 'slave==1 is expected,but slave=0.'
+                    return self.ERROR, rst_data
             else:
                 print 'Database error! DEVICE has repeated record! mac:{mac}'.format(mac=src_mac)
                 return self.ERROR, rst_data
