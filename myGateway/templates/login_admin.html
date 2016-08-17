@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>  
+    <head>  
+        <meta charset="utf-8">  
+        <title>admin-login</title> 
+        {% load static %}
+        <link href="{%static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+        <script src="{%static 'bootstrap/js/jquery.min.js' %}"></script>
+        <script src="{%static 'bootstrap/js/bootstrap.min.js' %}"></script>  
+        <style>
+            form{
+                padding:30px;
+                border-style: solid;
+                border-width: 5px;
+                border-color: lightgray;
+            }
+
+/*            img{
+                width:100%;
+                min-height: 400px;
+                max-height: 400px;
+            }*/
+        </style>
+    </head> 
+
+    <body>  
+    
+        <div class="container">
+            <div class="row clearfix">
+                <div class="col-md-12 column">
+
+                    <nav class="navbar navbar-default" role="navigation">
+                        <div class="navbar-header">
+                             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="/sdn-fill">SDN_FiLL</a>
+                        </div>
+                        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul class="nav navbar-nav">
+                                <li>
+                                     <a href="/login-user">User Login</a>
+                                </li>
+                                <li class="active">
+                                     <a href="/login-admin">Admin Login</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+
+                    <div class="row clearfix">
+                        <div class="col-md-4 column">
+                            <img class="img-responsive" src="{%static 'img/qy1.jpg'%}">
+                        </div>
+                        <div class="col-md-4 column">
+                            <div style="height:100px;"></div>
+                            <form id="admin-form" role="form" method="post" action="/admin-login/">{% csrf_token %}
+                                <div class="form-group">
+                                    <span class="glyphicon glyphicon-user"></span> 
+                                    <label>Admin ID</label>
+                                    <input id="admin-id" class="form-control" name="admin-id" required="true">
+                                </div>
+                                <div class="form-group">
+                                    <span class="glyphicon glyphicon-info-sign"></span>
+                                    <label>Password</label>
+                                    <input id="admin-pw" class="form-control" name='admin-pw' type="password" required="true">
+                                </div>
+
+                                <input type="submit" class="btn btn-default" value="Login in">
+                            </form>
+                            <h3 id="rst">{{rst}}</h3>
+                        </div>
+                        <div class="col-md-4 column">
+                            <img class="img-responsive" src="{%static 'img/qy2.jpg'%}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script type="text/javascript">
+
+        </script>
+
+    </body>  
+</html>  

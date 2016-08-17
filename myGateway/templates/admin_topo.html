@@ -1,0 +1,338 @@
+<html>  
+    <head>  
+        <meta charset="utf-8">  
+        <title>admin</title> 
+        {% load static %}
+        <link href="{%static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+        <script src="{%static 'bootstrap/js/jquery.min.js' %}"></script>
+        <script src="{%static 'bootstrap/js/bootstrap.min.js' %}"></script>
+        <style type="text/css">
+            #topo{
+                border-style: inset;
+                border-width: 5px;
+                border-color: lightgray;
+                background-color: whitesmoke;
+            }
+
+            div.pad-dialog{
+                height:205px;
+                border-style: dotted;
+                opacity:0;
+                background-color: ghostwhite;
+            }
+
+            .main-data{
+                display:none;
+            }
+
+            div.staff{
+                padding-left: 20px; 
+                padding-top: 5px;
+            }
+
+            div.staff-info{ 
+                padding-top: 25px;
+            }
+
+            img.staff{
+                padding: 5px;
+                max-height: 190px;
+                border-style: solid;
+                border-width: 3px; 
+                border-color: lightgray;
+                background-color: whitesmoke ;
+
+            }
+        </style> 
+    </head> 
+
+    <body>  
+
+        <div class="container">
+            <div class="row clearfix">
+                <nav class="navbar navbar-default" role="navigation">
+                    <div class="navbar-header">
+                         <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="/sdn-fill">SDN_FiLL</a>
+                    </div>
+                    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                        <ul class="nav navbar-nav">
+                            <li class="active">
+                                 <a href="/admin-topo">Topo</a>
+                            </li>
+                            <li>
+                                 <a href="/admin-table">Table</a>
+                            </li>
+                            <li>
+                                 <a href="/admin-flow">Flow</a>
+                            </li>    
+                        </ul>
+                    </div>
+                </nav>
+            </div>
+
+            <div class="row clearfix">
+                <div id="topo" class="col-md-8 column">
+                </div>
+                <div class="col-md-4 column">
+                    <div class="pad-dialog">
+                        <div class="row clearfix">
+                            <div class="col-md-6 column staff">
+                                <img id="staff" class="img-responsive staff" src="{%static 'img/pad3.png'%}">
+                            </div>
+                            <div class="col-md-6 column staff-info">
+                                <h4 id="name"></h4>
+                                <h4 id="depart"></h4>
+                                <h4 id="position"></h4>
+                                <h4 id="id"></h4>
+                            </div>
+                        </div>
+                    </div>
+                    <img id="padz" class="img-responsive" src="{%static 'img/pad3.png'%}">
+                </div>
+            </div>
+
+            <p id="nodes" class="main-data">{{nodes}}</p>
+            <p id="edges" class="main-data">{{edges}}</p>
+
+        </div>
+
+        <script src="{%static 'd3/d3.min.js'%}" charset="utf-8"></script>  
+        <script>
+
+        node_data = document.getElementById('nodes').innerHTML;
+        edge_data = document.getElementById('edges').innerHTML;
+
+        if(node_data == '0'){
+            alert('Connect to controller errer.')
+        }
+        else{
+
+            var nodes = eval(node_data);
+            var edges = eval(edge_data);     
+            
+            var width = 730;
+            var height = 550;
+            var img_w = 60;
+            var img_h = 50;
+
+            var padz = d3.select("img#padz");
+
+            padz.on("click",function(){
+                closeInfo();
+            });
+            
+            var svg = d3.select("#topo")
+                        .append("svg")
+                        .attr("width",width)
+                        .attr("height",height);
+            
+            var force = d3.layout.force()
+                    .nodes(nodes)       //指定节点数组
+                    .links(edges)       //指定连线数组
+                    .size([width,height])   //指定范围
+                    .linkDistance(200)  //指定连线长度
+                    .charge(-2000); //相互之间的作用力
+
+            force.start();  //开始作用
+            //添加连线      
+            var svg_edges = svg.selectAll("line")
+                                .data(edges)
+                                .enter()
+                                .append("line")
+                                .style("stroke","#ccc")
+                                .style("stroke-width",5);
+            
+            var color = d3.scale.category20();
+                    
+            //添加节点          
+            var svg_nodes = svg.selectAll("img")
+                                .data(nodes)
+                                .enter()
+                                .append("image")
+                                .attr("width",img_w)
+                                .attr("height",img_h)
+                                .attr("xlink:href",function(d){
+                                    if(0 == d.flag) return "{%static 'img/router.svg'%}";
+                                    else if(1 == d.flag){
+                                        var rdm = Math.random();
+                                        if(rdm > 0.5){
+                                            return "{%static 'img/computer.png'%}";
+                                        }else{
+                                            return "{%static 'img/phone.png'%}";
+                                        }
+                                    }else{
+                                        return "{%static 'img/gateway.png'%}";
+                                    }
+                                })
+                                .on("click",function(d){
+                                    if(1 == d.flag) moreInfo(d);
+                                    else closeInfo();
+                                })
+                                .call(force.drag);  //使得节点能够拖动
+
+            //添加描述节点的文字
+            var svg_edges_sport = svg.selectAll(".estext")
+                                .data(edges)
+                                .enter()
+                                .append("text")
+                                .style("fill", "red")
+                                .attr("dx", 20)
+                                .attr("dy", 8)
+                                .text(function(d){
+                                    return d.ps;
+                                });
+
+            var svg_edges_tport = svg.selectAll(".ettext")
+                                .data(edges)
+                                .enter()
+                                .append("text")
+                                .style("fill", "red")
+                                .attr("dx", 20)
+                                .attr("dy", 8)
+                                .text(function(d){
+                                    return d.pt;
+                                });
+
+            var svg_texts_name = svg.selectAll(".nametext")
+                                .data(nodes)
+                                .enter()
+                                .append("text")
+                                .style("fill",function(d){
+                                    if(0 == d.flag) return "white";
+                                    else return "black";
+                                })
+                                .attr("dx", 20)
+                                .attr("dy", 8)
+                                .text(function(d){
+                                    if(0 != d.flag) return 'ip: '+ d.more.ip;
+                                    else return 'dpid: '+ d.name;
+                                });
+
+            var svg_texts_mac = svg.selectAll(".mactext")
+                                .data(nodes)
+                                .enter()
+                                .append("text")
+                                .attr("class","text")
+                                .style("fill", "black")
+                                .attr("dx", 20)
+                                .attr("dy", 8)
+                                .text(function(d){
+                                    if(0 != d.flag) return 'mac: '+ d.more.mac;
+                                });
+
+            var svg_texts_vlan = svg.selectAll(".vlantext")
+                                .data(nodes)
+                                .enter()
+                                .append("text")
+                                .attr("class","text")
+                                .style("fill", "black")
+                                .attr("dx", 20)
+                                .attr("dy", 8)
+                                .text(function(d){
+                                    if(1 == d.flag) return 'vlan: '+ d.more.vlan;
+                                    else if(2 == d.flag) return 'Gateway';
+                                });
+                        
+
+            force.on("tick", function(){    //对于每一个时间间隔
+            
+                 //更新连线坐标
+                 svg_edges.attr("x1",function(d){ return d.source.x; })
+                        .attr("y1",function(d){ return d.source.y; })
+                        .attr("x2",function(d){ return d.target.x; })
+                        .attr("y2",function(d){ return d.target.y; });
+
+                 svg_edges_sport.attr("x",function(d){
+                            var cx = (d.source.x + d.target.x)/2;
+                            if(d.source.x < d.target.x){
+                                var dx = d.target.x - d.source.x;
+                                return cx - dx/2 + dx/4;
+                            }else{
+                                var dx = d.source.x - d.target.x;
+                                return cx + dx/2 - dx/4;
+                            }
+                         })
+                        .attr("y",function(d){
+                            var cy = (d.source.y + d.target.y)/2;
+                            if(d.source.y < d.target.y){
+                                var dy = d.target.y - d.source.y;
+                                return cy - dy/2 + dy/4;
+                            }else{
+                                var dy = d.source.y - d.target.y;
+                                return cy + dy/2 - dy/4;
+                            }
+                        });
+
+                 svg_edges_tport.attr("x",function(d){
+                            var cx = (d.source.x + d.target.x)/2;
+                            if(d.source.x < d.target.x){
+                                var dx = d.target.x - d.source.x;
+                                return cx + dx/2 - dx/4;
+                            }else{
+                                var dx = d.source.x - d.target.x;
+                                return cx - dx/2 + dx/4;
+                            }
+                        })
+                        .attr("y",function(d){
+                            var cy = (d.source.y + d.target.y)/2;
+                            if(d.source.y < d.target.y){
+                                var dy = d.target.y - d.source.y;
+                                return cy + dy/2 - dy/4;
+                            }else{
+                                var dy = d.source.y - d.target.y;
+                                return cy - dy/2 + dy/4;
+                            }                           
+                        });
+                 
+                 //更新节点坐标
+                 svg_nodes.attr("x",function(d){ return d.x - img_w/2; })
+                        .attr("y",function(d){ return d.y - img_h/2; });
+
+                 //更新文字坐标
+                 svg_texts_name.attr("x", function(d){
+                        if(0 == d.flag) return d.x - img_w/2 -10;
+                        else return d.x; 
+                    })
+                    .attr("y", function(d){
+                        if(0 == d.flag) return d.y + 7;
+                        else return d.y - 15;
+                    });
+
+                 svg_texts_mac.attr("x", function(d){ return d.x; })
+                    .attr("y", function(d){ return d.y; });
+
+                 svg_texts_vlan.attr("x", function(d){ return d.x; })
+                    .attr("y", function(d){ return d.y + 15; });
+            });
+        }
+
+        function moreInfo(data){
+                d3.select("div.pad-dialog")
+                    .style("opacity",0)
+                    .transition()
+                    .duration(3000)
+                    .style("opacity",100);
+
+                d3.select("h4#name").text("Name: " + data.more.name);
+                d3.select("h4#depart").text("Section: " + data.more.depart);
+                d3.select("h4#position").text("Position: " + data.more.position);
+                d3.select("h4#id").text("ID: " + data.name);
+                d3.select("img#staff").attr("src",function(){
+                    var url_tmp = "{%static 'img/pad3.png'%}";
+                    var url = url_tmp.replace(/pad3/,data.more.name)
+                    return url;
+                });
+        }
+
+        function closeInfo(){
+            d3.select("div.pad-dialog")
+                .transition()
+                .duration(500)
+                .style("opacity",0);
+
+        }
+
+        </script>  
+
+    </body>  
+</html>  

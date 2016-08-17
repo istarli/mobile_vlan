@@ -1,0 +1,331 @@
+<html>  
+    <head>  
+        <meta charset="utf-8">  
+        <title>admin-table</title> 
+        {% load static %}
+        <link href="{%static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+        <script src="{%static 'bootstrap/js/jquery.min.js' %}"></script>
+        <script src="{%static 'bootstrap/js/bootstrap.min.js' %}"></script> 
+        <style>
+
+            div.pad-dialog{
+                border-left: solid;
+                border-width:1px; 
+                padding-left:25px;
+                opacity:0;
+            }
+
+            div.staff{
+                background-color: ghostwhite;
+                padding: 10px;
+            }
+
+        </style>
+    </head> 
+
+    <body id="body">  
+
+        <div class="container">
+            <div class="row clearfix">
+                <div class="col-md-12 column">
+                    <nav class="navbar navbar-default" role="navigation">
+                        <div class="navbar-header">
+                             <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1"> <span class="sr-only">Toggle navigation</span><span class="icon-bar"></span><span class="icon-bar"></span><span class="icon-bar"></span></button> <a class="navbar-brand" href="/sdn-fill">SDN_FiLL</a>
+                        </div>
+                        <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+                            <ul class="nav navbar-nav">
+                                <li>
+                                     <a href="/admin-topo">Topo</a>
+                                </li>
+                                <li class="active">
+                                     <a href="/admin-table">Table</a>
+                                </li>
+                                <li>
+                                     <a href="/admin-flow">Flow</a>
+                                </li>     
+                                <form id="form-nav" class="navbar-form navbar-left" role="search" action="/admin-table/" method="post">{% csrf_token %}
+                                    <div class="form-group">
+                                        <select id="select-nav" class="form-control" name="table-select" onchange="chg_input_stat(this)">
+                                            <option value="dev">Device</option>
+                                            <option value="gw">Gateway</option>
+                                            <option value="dpall">All OVS</option>
+                                            <option value="dp">The OVS</option>
+                                            <option value="all">All Table</option>
+                                        </select>
+                                        <input id="input-nav" name="table-input" class="form-control" type="text" placeholder="specify the dpid" required disabled/>
+                                        <button type="button" class="btn btn-default" onclick="my_submit()">Show table</button>
+                                    </div> 
+                                </form>
+                            </ul>
+                        </div>
+                    </nav>
+
+                    <div class="row clearfix">
+                        <div class="col-md-8 column">
+                            <div id="div-gw"></div>
+                            <div id="div-dev"></div>
+                            <div id="div-dp"></div>
+                            <div id="div-dpall"></div>
+                        </div>
+                        <div class="col-md-4 column">
+                            <div id="div-more" class="pad-dialog">
+                                <h3>User Infomation:</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p id="table" style="display:none;">{{table}}</p>
+                    <p id="order" style="display:none;">{{order}}</p>
+                    <p id="dpid" style="display:none;">{{dpid}}</p>
+
+                </div>
+
+
+            </div>
+        </div>
+
+        <script src="{%static 'd3/d3.min.js'%}" charset="utf-8"></script>
+        <script>
+            //initial form
+            var select = document.getElementById("select-nav");  
+            this.order = document.getElementById("order").innerHTML;
+            this.dplist = [];
+                
+            for(var i = 0; i < select.options.length; i++){  
+                if(select.options[i].value == this.order){  
+                    select.options[i].selected = true;  
+                    break;  
+                }
+            }
+            if('dp' == this.order){
+                document.getElementById("input-nav").disabled = "";
+            }  
+
+            var tbdata = document.getElementById("table").innerHTML;
+            if(tbdata == '0'){
+                alert('Connect to controller error.')
+            }else{
+                var tb = eval(tbdata);
+
+                this.dplist = tb[0]['dpid_list'];
+
+                if('all' == this.order){
+                    createAllTable(tb);
+                }else{
+                    createTableByX(tb[0][this.order],this.order);
+                }
+            }
+
+            function createAllTable(_data){
+                var data_dev = _data[0]['dev'];
+                var data_gw = _data[0]['gw'];
+                var data_dpall = _data[0]['dpall'];
+
+                createTableByX(data_gw,'gw');
+                createTableByX(data_dev,'dev');
+                createTableByX(data_dpall,'dpall');
+            }
+
+            function createTableByX(_data,x){
+
+                var x_list = {'dev':[
+                                        'div-dev',
+                                        ['MAC_ADDR','IP_ADDR','VLAN_ID','DPID','PORT','USER_ID'],
+                                        ['mac','ip','vlan','dpid','port','user'],
+                                        'Device'
+                                ],
+                              'gw':[
+                                        'div-gw',
+                                        ['MAC_ADDR','IP_ADDR','DPID','PORT'],
+                                        ['mac','ip','dpid','port'],
+                                        'Gateway'
+                                ],
+                              'dpall':[
+                                        'div-dpall',
+                                        ['DPID','MAC_ADDR','PORT_ID','IP_ADDR','SLAVE'],
+                                        ['dpid','mac','port','ip','slave'],
+                                        'All OVS'
+                                ],
+                              'dp':[
+                                        'div-dp',
+                                        ['MAC_ADDR','PORT_ID','IP_ADDR','SLAVE'],
+                                        ['mac','port','ip','slave'],
+                                        'The OVS'
+                                ]
+                             };
+
+                if(x == 'dp'){
+                    var dpid = document.getElementById("dpid").innerHTML;
+                    x_list[x][3] = x_list[x][3] + " (dpid=" + dpid + ")";
+
+                    var div_more = document.getElementById("dpid-more");
+
+                }
+
+                var Div = document.getElementById(x_list[x][0]);
+                var tbname = document.createElement('h4');
+                tbname.innerHTML = x_list[x][3];
+                Div.appendChild(tbname);
+
+                this.lines = x_list[x][1].length;
+                this.data = _data;
+                this.rows = _data.length; 
+
+                var Table = document.createElement('table');
+                
+                Table.className = "table table-striped table-bordered table-hover table-condensed";
+
+                var rhead = Table.insertRow(0)
+                rhead.className = "success";
+                var moreInfoList = ['dev','dp','dpall'];
+                if(-1 != moreInfoList.indexOf(x)){
+                    rhead.onclick = function(){ closeInfo(); };
+                }
+                for(var j = 0; j < this.lines; j++){
+                    var cells = rhead.insertCell(j);
+                    cells.innerHTML = x_list[x][1][j];
+                    cells.style.textAlign = "center";
+                }
+
+                for(var i = 0; i < this.rows; i++){
+                    var row = Table.insertRow(i+1);
+                    row.id = x + '-row-' + i.toString();
+                    if(-1 != moreInfoList.indexOf(x)){
+                        var moreDataDev = this.data;
+
+                        console.log(moreDataDev);
+                        var moreDataOvs = this.data;
+                        row.onclick = function(){ if('dev' == x){
+                            moreInfoDev(moreDataDev); 
+                        }else{
+                            moreInfoOvs(moreDataOvs);
+                        }
+                    };
+                    }
+                    for(var j = 0; j < this.lines; j++){
+                        var cells = row.insertCell(j);
+                        cells.innerHTML = this.data[i][ x_list[x][2][j] ];
+                        cells.style.textAlign = "center";
+                    }
+                }
+
+                Div.appendChild(Table);
+            }
+
+            function chg_input_stat(select){
+                var order = select.options[select.selectedIndex].text;
+                var input = document.getElementById("input-nav");
+                if(order == "The OVS"){
+                    input.disabled = "";
+                }
+                else{
+                    input.disabled = "disabled";
+                }
+            }
+
+            function my_submit(){
+                var form = document.getElementById("form-nav");
+                var order = select.options[select.selectedIndex].text;
+                if(order == "The OVS"){
+                    if(value_check()){
+                        form.submit();
+                    }
+                }
+                else{
+                    form.submit();
+                }
+            }
+
+            function value_check(){
+                var input = document.getElementById("input-nav");
+                if(input.value == ''){
+                    alert('Please specify the dpid!');
+                    return false;
+                }
+
+                inflag = false;
+                for(var x in this.dplist){
+                    if(this.dplist[x] == input.value){
+                        inflag = true;
+                        break;
+                    }
+                }
+                if(!inflag){
+                    alert('No this dpid! The dpid_list is ' + this.dplist.toString());
+                }
+                return inflag;
+            }
+
+            function moreInfoDev(data,x){
+                d3.select("div.pad-dialog")
+                    .style("opacity",100);
+
+                var row_index = event.srcElement.parentElement.rowIndex;
+                var div_more = document.getElementById('div-more');
+                createMoreInfo(div_more,data[row_index-1]);
+            }
+
+            function moreInfoOvs(data){
+                d3.select("div.pad-dialog")
+                    .style("opacity",100);
+
+                var div_more = document.getElementById('div-more');
+                for(var i = 0; i < data.length; i++){
+                    createMoreInfo(div_more,data[i]);
+                }
+            }
+
+            function closeInfo(){
+                d3.select("div#div-more")
+                    .style("opacity",0);
+
+                var div_more = document.getElementById('div-more');
+                div_more.innerHTML = "";
+                var title = document.createElement("h3");
+                title.innerHTML = "User Infomation:"
+                div_more.appendChild(title);
+            }
+
+            function createMoreInfo(div,data){
+                if(null == document.getElementById(data['user'])){
+                    var div_row = document.createElement('div');
+                    if(0 != data['user']){
+                        div_row.id = data['user'];
+                        div_row.className = "row clearfix staff";
+
+                        var div_coll = document.createElement('div');
+                        div_coll.className = "col-md-5 column";
+                        var img_staff = document.createElement('img');
+                        img_staff.className = "img-responsive staff";
+                        var url_tmp = "{%static 'img/pad3.png'%}";
+                        var url = url_tmp.replace(/pad3/,data['more']['name'])
+                        img_staff.src = url;
+                        div_coll.appendChild(img_staff);
+
+                        var div_colr = document.createElement('div');
+                        div_colr.className = "col-md-7 column";
+                        var h = [];
+                        var text = ["Name: " + data.more.name, 
+                                    "Section: " + data.more.depart,
+                                    "Position: " + data.more.position,
+                                    "ID: " + data.user
+                        ]
+                        for(var i = 0; i < 4; i++){
+                            h[i] = document.createElement('h4');
+                            h[i].innerHTML = text[i];
+                            div_colr.appendChild(h[i]);
+                        }
+                        div_row.appendChild(div_colr);
+                        div_row.appendChild(div_coll);
+
+                        var br = document.createElement('br');
+                        
+                        div.appendChild(div_row);
+                        div.appendChild(br);
+                    }
+                }
+            }
+
+        </script>
+    </body>  
+</html>  

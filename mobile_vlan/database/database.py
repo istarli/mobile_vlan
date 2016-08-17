@@ -300,7 +300,8 @@ class database():
     def createDEVICE(self):
         crt_device_sql = '''CREATE TABLE DEVICE
                  (MAC_ADDR    VARCHAR(100)   PRIMARY KEY NOT NULL,
-                  VLAN_ID       INT          NOT NULL);'''
+                  VLAN_ID       INT          NOT NULL,
+                  USER_ID       INT          NOT NULL);'''
         self.db.execute(crt_device_sql)
         return
 
@@ -342,14 +343,44 @@ class database():
             self.createDPID(dpid)
         return
 
+    # select from sqlite_master
+    def selectTABLE(self):
+        data_set = self.db.table("sqlite_master").select("name").fetchall()
+        return data_set
+
+    def tableExist(self,name):
+        if (name,) in self.selectTABLE():
+            return True
+        else:
+            return False
+
+    def getDPIDLIST(self):
+        tables = self.selectTABLE()
+        num_table = len(tables)/2
+        dpid_list = []
+        for x in range(0,num_table):
+            table_name = tables[x*2][0].encode('utf-8')
+            if 'DPID' == table_name[:4]:
+                dpid_list.append(int(table_name[4:]))
+        return dpid_list        
+
+    def getDPIDBySlave(self, mac_addr):
+        dpid_list = self.getDPIDLIST()
+        rcd = self.findMulDPIDByX(dpid_list=dpid_list,x='MAC_ADDR',value=mac_addr)
+        for x in rcd:
+            for item in rcd[x]:
+                if 1 == item[2]:
+                    return int(x[4:])
+        return None
+
     # insert into DEVICE
-    def insertDEVICE(self, mac_addr, vlan_id):
-        self.db.table("DEVICE").insert(MAC_ADDR=mac_addr,VLAN_ID=vlan_id).execute()
+    def insertDEVICE(self, mac_addr, vlan_id, user_id):
+        self.db.table("DEVICE").insert(MAC_ADDR=mac_addr,VLAN_ID=vlan_id, USER_ID=user_id).execute()
         return
 
     # select from DEVICE
     def selectDEVICE(self):
-        data_set = self.db.table("DEVICE").select("MAC_ADDR,VLAN_ID").fetchall()
+        data_set = self.db.table("DEVICE").select("MAC_ADDR,VLAN_ID,USER_ID").fetchall()
         return data_set
 
     # insert into GATEWAY
@@ -386,9 +417,11 @@ class database():
     def findDEVICEByX(self, x, value):
         data_set = []
         if 'VLAN_ID' == x:
-            data_set = self.db.table("DEVICE").select("MAC_ADDR").where(DataCondition(VLAN_ID=value)).fetchall()
+            data_set = self.db.table("DEVICE").select("MAC_ADDR,USER_ID").where(DataCondition(VLAN_ID=value)).fetchall()
         elif 'MAC_ADDR' == x:
-            data_set = self.db.table("DEVICE").select("VLAN_ID").where(DataCondition(MAC_ADDR=value)).fetchall()
+            data_set = self.db.table("DEVICE").select("VLAN_ID,USER_ID").where(DataCondition(MAC_ADDR=value)).fetchall()
+        elif 'USER_ID'== x:
+            data_set = self.db.table("DEVICE").select("MAC_ADDR,VLAN_ID").where(DataCondition(USER_ID=value)).fetchall()
         else:
             print 'Please input the right option!'
         return data_set
@@ -439,8 +472,8 @@ class database():
         return num
 
     # update the DEVICE
-    def updateDEVICE(self, mac_addr, vlan_id):
-        self.db.table("DEVICE").update(VLAN_ID=vlan_id).where(DataCondition(MAC_ADDR=mac_addr)).execute()
+    def updateDEVICE(self, mac_addr, vlan_id, user_id):
+        self.db.table("DEVICE").update(VLAN_ID=vlan_id, USER_ID=user_id).where(DataCondition(MAC_ADDR=mac_addr)).execute()
         return
 
     # update the GATEWAY
@@ -460,6 +493,8 @@ class database():
             self.db.table("DEVICE").delete(DataCondition(MAC_ADDR=value)).execute()
         elif 'VLAN_ID' == x:
             self.db.table("DEVICE").delete(DataCondition(VLAN_ID=value)).execute()
+        elif 'USER_ID' == x:
+            self.db.table("DEVICE").delete(DataCondition(USER_ID=value)).execute()
         else:
             print 'Please input the right option!'
         return

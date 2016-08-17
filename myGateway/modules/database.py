@@ -303,7 +303,8 @@ class database():
              PASSWORD   VARCHAR(100)  NOT NULL,
              VLAN_ID		INT       NOT NULL,
              DEPARTMENT VARCHAR(100),
- 			 POSITION   VARCHAR(100));'''
+ 			 POSITION   VARCHAR(100),
+             NAME       VARCHAR(100));'''
         self.db.execute(crt_user_sql)
         return
 
@@ -315,81 +316,85 @@ class database():
     # create table: DEVICE
     def createDEVICE(self):
         crt_device_sql = '''CREATE TABLE DEVICE
-                 (MAC_ADDR    VARCHAR(100)   PRIMARY KEY NOT NULL,
+                 (IP_ADDR    VARCHAR(100)   PRIMARY KEY NOT NULL,
                   USER_ID		INT          NOT NULL);'''
         self.db.execute(crt_device_sql)
         return
 
     # insert into USER
-    def insertUSER(self, user_id, password, vlan_id, department='SDN_FiLL', position='Boss'):
-        self.db.table("USER").insert(USER_ID=user_id, PASSWORD=password, VLAN_ID=vlan_id, DEPARTMENT=department, POSITION=position).execute()
+    def insertUSER(self, user_id, password, vlan_id, department='SDN_FiLL', position='Boss', name='Mike'):
+        self.db.table("USER").insert(USER_ID=user_id, PASSWORD=password, VLAN_ID=vlan_id, DEPARTMENT=department, POSITION=position, Name=name).execute()
         return
 
     # insert into DEVICE
-    def insertDEVICE(self, mac_addr, user_id):
-        self.db.table("DEVICE").insert(MAC_ADDR=mac_addr, USER_ID=user_id).execute()
+    def insertDEVICE(self, ip_addr, user_id):
+        self.db.table("DEVICE").insert(IP_ADDR=ip_addr, USER_ID=user_id).execute()
         return
 
     # select from USER
     def selectUSER(self):
-        data_set = self.db.table("USER").select("USER_ID,PASSWORD,VLAN_ID,DEPARTMENT,POSITION").fetchall()
+        data_set = self.db.table("USER").select("USER_ID,PASSWORD,VLAN_ID,DEPARTMENT,POSITION,NAME").fetchall()
         return data_set
 
     # select from DEVICE
     def selectDEVICE(self):
-        data_set = self.db.table("DEVICE").select("MAC_ADDR,USER_ID").fetchall()
+        data_set = self.db.table("DEVICE").select("IP_ADDR,USER_ID").fetchall()
         return data_set
 
     # find USER by x
     def findUSERByX(self, x, value):
-		data_set = []
-		if 'VLAN_ID' == x:
-			data_set = self.db.table("USER").select("USER_ID,PASSWORD,DEPARTMENT,POSITION").where(DataCondition(VLAN_ID=value)).fetchall()
-		elif 'USER_ID' == x:
-			data_set = self.db.table("USER").select("PASSWORD,VLAN_ID,DEPARTMENT,POSITION").where(DataCondition(USER_ID=value)).fetchall()
-		elif 'PASSWORD' == x:
-			data_set = self.db.table("USER").select("USER_ID,VLAN_ID,DEPARTMENT,POSITION").where(DataCondition(PASSWORD=value)).fetchall()
-		else:
-			print 'Please input right option!'
-		return data_set
+        data_set = []
+        if 'VLAN_ID' == x:
+            data_set = self.db.table("USER").select("USER_ID,PASSWORD,DEPARTMENT,POSITION,NAME").where(DataCondition(VLAN_ID=value)).fetchall()
+        elif 'USER_ID' == x:
+            data_set = self.db.table("USER").select("PASSWORD,VLAN_ID,DEPARTMENT,POSITION,NAME").where(DataCondition(USER_ID=value)).fetchall()
+        elif 'PASSWORD' == x:
+            data_set = self.db.table("USER").select("USER_ID,VLAN_ID,DEPARTMENT,POSITION,NAME").where(DataCondition(PASSWORD=value)).fetchall()
+        elif 'NAME' == x:
+            data_set = self.db.table("USER").select("USER_ID,PASSWORD,VLAN_ID,DEPARTMENT,POSITION").where(DataCondition(NAME=value)).fetchall()
+        else:
+            print 'Please input right option!'
+        return data_set
 
 	# find DEVICE by x
     def findDEVICEByX(self, x, value):
     	data_set = []
     	if 'USER_ID' == x:
-        	data_set = self.db.table("DEVICE").select("MAC_ADDR").where(DataCondition(USER_ID=value)).fetchall()
-        elif 'MAC_ADDR' == x:
-        	data_set = self.db.table("DEVICE").select("USER_ID").where(DataCondition(MAC_ADDR=value)).fetchall()
+        	data_set = self.db.table("DEVICE").select("IP_ADDR").where(DataCondition(USER_ID=value)).fetchall()
+        elif 'IP_ADDR' == x:
+        	data_set = self.db.table("DEVICE").select("USER_ID").where(DataCondition(IP_ADDR=value)).fetchall()
         else:
         	print 'Please input right option!'
         return data_set
 
     # update USER
-    def updateUSER(self, user_id, password, vlan_id, department='SDN_FiLL', position='Boss'):
-        self.db.table("USER").update(PASSWORD=password,VLAN_ID=vlan_id,DEPARTMENT=department,POSITION=position).where( DataCondition(USER_ID=user_id)).execute()
+    def updateUSER(self, user_id, password, vlan_id, department='SDN_FiLL', position='Boss', name='Mike'):
+        self.db.table("USER").update(PASSWORD=password,VLAN_ID=vlan_id,DEPARTMENT=department,POSITION=position, NAME=name).where( DataCondition(USER_ID=user_id)).execute()
         return
 
     # update the DEVICE
-    def updateDEVICE(self, mac_addr, user_id):
-        self.db.table("DEVICE").update(USER_ID=user_id).where(DataCondition(MAC_ADDR=mac_addr)).execute()
+    def updateDEVICE(self, ip_addr, user_id):
+        self.db.table("DEVICE").update(USER_ID=user_id).where(DataCondition(IP_ADDR=ip_addr)).execute()
         return
 
     # delete USER by X
     def deleteUSERByX(self, x, value):
-		if 'USER_ID' == x:
-			self.db.table("USER").delete(DataCondition(USER_ID=value)).execute()
-		elif 'VLAN_ID' == x:
-			self.db.table("USER").delete(DataCondition(VLAN_ID=value)).execute()
-		elif 'PASSWORD' == x:
-			self.db.table("USER").delete(DataCondition(PASSWORD=value)).execute()
-		else:
-			print 'Please input right option!'
-		return
+        if 'USER_ID' == x:
+            self.db.table("USER").delete(DataCondition(USER_ID=value)).execute()
+        elif 'VLAN_ID' == x:
+            self.db.table("USER").delete(DataCondition(VLAN_ID=value)).execute()
+        elif 'PASSWORD' == x:
+            self.db.table("USER").delete(DataCondition(PASSWORD=value)).execute()
+        elif 'NAME' == x:
+            self.db.table("USER").delete(DataCondition(NAME=value)).execute()
+        else:
+            print 'Please input right option!'
+        return
 
     # delete DEVICE by x
     def deleteDEVICEByX(self, x, value):
-    	if 'MAC_ADDR' == x:
-        	self.db.table("DEVICE").delete(DataCondition(MAC_ADDR=value)).execute()
+    	if 'IP_ADDR' == x:
+        	self.db.table("DEVICE").delete(DataCondition(IP_ADDR=value)).execute()
         elif 'VLAN_ID' == x:
         	self.db.table("DEVICE").delete(DataCondition(VLAN_ID=value)).execute()
         else:

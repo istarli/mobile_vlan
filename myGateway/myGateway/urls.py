@@ -21,5 +21,12 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^hello/$',hello),
     url(r'^test/$',test),
-    url(r'^login/$',login),
+    url(r'^login-user/$',login_user),
+    url(r'^user-login/$',user_login),
+    url(r'^login-admin/$',login_admin),
+    url(r'^admin-login/$',admin_login),
+    url(r'^sdn-fill/$',sdn_fill),
+    url(r'^admin-topo/$',admin_topo),
+    url(r'^admin-table/$',admin_table),
+    url(r'^admin-flow/$',admin_flow),
 ]
