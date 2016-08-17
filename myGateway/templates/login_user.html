@@ -45,7 +45,7 @@
                             </div>
 
                             <div class="col-md-4 column">
-                                <div style="height:100px;"></div>
+                                <div style="height:70px;"></div>
                                 <form id="user-form" role="form" method="post" action="/user-login/">{% csrf_token %}
                                     <div class="form-group">
                                         <span class="glyphicon glyphicon-user"></span> 
@@ -62,7 +62,10 @@
                                              <input type="submit" class="btn btn-default" value="Login in">
                                         </div>
                                     </div>
-                                    <h3 id="rst">{{rst}}</h3>
+                                    <h4>{{rst}}</h4>
+                                    <h4>{{userid}}</h4>
+                                    <h4>{{name}}</h4>
+                                    <h4>{{state}}</h4>
                                 </form>
                             </div>
                             <div class="col-md-4 column">

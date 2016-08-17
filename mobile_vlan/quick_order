@@ -1,0 +1,2 @@
+sudo python setup.py install
+ryu-manager ryu.app.mobile_vlan.mobile_vlan ryu.app.mobile_vlan.mobileVlan_rest ryu.app.mobile_vlan.rest_admin --observe-links

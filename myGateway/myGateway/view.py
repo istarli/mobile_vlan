@@ -34,7 +34,7 @@ def user_login(request):
 		uid = request.POST['user-id'].encode('utf-8')
 		pwd = request.POST['user-pw'].encode('utf-8')
 		ip_addr = get_ip(request)
-		info['rst'] = login_proc(uid,pwd,ip_addr,dbName=DB_PATH)
+		info = login_proc(uid,pwd,ip_addr,dbName=DB_PATH)
 	return render(request,'login_user.html', info)
 
 def login_admin(request):

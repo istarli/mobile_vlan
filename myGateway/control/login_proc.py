@@ -3,10 +3,10 @@ import sys
 sys.path.append('../')
 from modules.database import *
 from flow import flow_login_in
-from my_db import get_mac
+from my_db import get_mac, get_user
 
 def login_proc(user_id,password,ip_addr,dbName='../modules/USERDATA.db'):
-    info = ''
+    info = {}
     db = database(dbName)
     data_set = db.findUSERByX('USER_ID',user_id)
     if 1 == len(data_set):
@@ -16,13 +16,18 @@ def login_proc(user_id,password,ip_addr,dbName='../modules/USERDATA.db'):
             print 'User login in request.'
             if 0 == get_mac(ip_addr)[1]:
                 if None != flow_login_in(ip_addr,vlan_id,user_id):
-                    info = info + ' Login in successfully!'
+                    info['rst'] = 'Login in successfully!'
                 else:
-                    info = info + ' Login in failed!'
+                    info['rst'] = 'Login in failed!'
             else:
-                info = 'The device has logined in before! Login in failed!'
+                dev_user = get_user(ip_addr)
+                dev_user_id, dev_user_name = dev_user[0], dev_user[1]
+                info['rst'] = 'The device has logined in before!'
+                info['userid'] = 'User ID:{id}'.format(id=dev_user_id)
+                info['name'] = 'User Name:{name}'.format(name=dev_user_name)
+                info['state'] = 'Update Net-Info finished!'
         else:
-            info = 'Wrong password!'
+            info['rst'] = 'Wrong password!'
     else:
-        info = 'No this user!'
+        info['rst'] = 'No this user!'
     return info

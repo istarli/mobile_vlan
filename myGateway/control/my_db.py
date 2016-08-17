@@ -65,7 +65,6 @@ def get_device():
         return None
 
     for dev in devs:
-        print dev
         rcd_user = db.findUSERByX('USER_ID',dev['user'])[0]
         dev['ip'] = dev['more']['ip'].encode('utf-8')
         dev['dpid'] = dev['more']['dpid']
@@ -74,6 +73,16 @@ def get_device():
         dev['more']['position'] = rcd_user[3].encode('utf-8')
         dev['more']['name'] = rcd_user[4].encode('utf-8')
     return devs
+
+def get_user(ip_addr):
+    devs = get_device()
+    if None == devs:
+        return None
+    else:
+        for dev in devs:
+            if ip_addr == dev['ip']:
+                return dev['user'], dev['more']['name']
+        return None
 
 def get_table(order,dpid=None):
     data = {}
