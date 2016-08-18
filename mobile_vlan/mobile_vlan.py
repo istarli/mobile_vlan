@@ -249,6 +249,7 @@ class MobileVlan(app_manager.RyuApp):
                                 match1 = pars_iter.OFPMatch(eth_dst=src)
                                 # 删除匹配该目的ip的流表
                                 match2 = pars_iter.OFPMatch(arp_tpa=as_ip, eth_type=ether_types.ETH_TYPE_ARP)
+                                match5 = pars_iter.OFPMatch(arp_spa=as_ip, eth_type=ether_types.ETH_TYPE_ARP)
                                 # match3 = pars_iter.OFPMatch(ipv4_dst=as_ip, eth_type=ether_types.ETH_TYPE_IP)
                                 # 删除匹配该yuan mac的流表
                                 match3 = pars_iter.OFPMatch(eth_src=src)
@@ -263,6 +264,8 @@ class MobileVlan(app_manager.RyuApp):
                                 self.add_flow(dp_iter, 1, match3, inst=inst, table_id=ofp_iter.OFPTT_ALL, command=3, idle_timeout=1000,
                                               out_port=out_port_iter, out_group=out_group_iter)
                                 self.add_flow(dp_iter, 1, match4, inst=inst, table_id=ofp_iter.OFPTT_ALL, command=3, idle_timeout=1000,
+                                              out_port=out_port_iter, out_group=out_group_iter)
+                                self.add_flow(dp_iter, 1, match5, inst=inst, table_id=ofp_iter.OFPTT_ALL, command=3, idle_timeout=1000,
                                               out_port=out_port_iter, out_group=out_group_iter)
 
                             # 下发packet-out(FLOOD)
@@ -299,6 +302,7 @@ class MobileVlan(app_manager.RyuApp):
                         match1 = parser.OFPMatch(eth_dst=src)
                         # 删除匹配该目的ip的流表
                         match2 = parser.OFPMatch(arp_tpa=as_ip, eth_type=ether_types.ETH_TYPE_ARP)
+                        match5 = parser.OFPMatch(arp_spa=as_ip, eth_type=ether_types.ETH_TYPE_ARP)
                         # match3 = parser.OFPMatch(ipv4_dst=as_ip, eth_type=ether_types.ETH_TYPE_IP)
                         # 删除匹配该yuan mac的流表
                         match3 = parser.OFPMatch(eth_src=src)
@@ -313,6 +317,8 @@ class MobileVlan(app_manager.RyuApp):
                         self.add_flow(datapath, 1, match3, inst=inst1, table_id=ofproto.OFPTT_ALL, command=3, idle_timeout=1000,
                                       out_port=out_port, out_group=out_group)
                         self.add_flow(datapath, 1, match4, inst=inst1, table_id=ofproto.OFPTT_ALL, command=3, idle_timeout=1000,
+                                      out_port=out_port, out_group=out_group)
+                        self.add_flow(datapath, 1, match5, inst=inst1, table_id=ofproto.OFPTT_ALL, command=3, idle_timeout=1000,
                                       out_port=out_port, out_group=out_group)
                         # 下发新的pushvlan流表到table-id=0并且go to table_id=1
                         # Packet-out
@@ -662,6 +668,7 @@ class MobileVlan(app_manager.RyuApp):
                 actions = [parser.OFPActionOutput(g_port)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 self.add_flow(datapath, 1, match1, inst=inst, table_id=1)
+                self.add_flow(datapath, 1, match2, inst=inst, table_id=1)
                 data = None
                 if msg.buffer_id == ofproto.OFP_NO_BUFFER:
                     data = msg.data
